@@ -4,3 +4,4 @@ Into the console on the right side of the screen type
 
 pip install gspread
 pip install oauth2client
+pip install scipy
