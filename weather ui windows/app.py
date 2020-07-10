@@ -1,5 +1,5 @@
 from PyQt5 import QtWidgets, uic, QtGui, QtCore
-from PyQt5.QtWidgets import QApplication,QComboBox, QMainWindow,QWidget, QLabel, QFileDialog, QMessageBox, QInputDialog, QLineEdit
+from PyQt5.QtWidgets import QApplication,QComboBox, QMainWindow,QWidget, QLabel, QFileDialog, QMessageBox
 from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtCore import QDate, QDateTime 
 from scipy.signal import savgol_filter
@@ -7,7 +7,7 @@ import PyQt5
 from app_data.weather_ui_2 import Ui_MainWindow
 
 import os
-import time
+import time as tm
 import sys
 import gspread
 import datetime
@@ -32,13 +32,14 @@ res_y = 521
 class mywindow(QtWidgets.QMainWindow):
     
     def activate(self,index):
-        #ts = time.time()
+        ts = tm.time()
         
         res_x = (self.ui.pic_label.size()).width()
         res_y = (self.ui.pic_label.size()).height()
         if plt:
             plt.clf()
             
+
         if index == 0:
             temp_date_list = []
             temp_list = []
@@ -52,17 +53,22 @@ class mywindow(QtWidgets.QMainWindow):
             for data in self.index_list:
                 new_date.append(temp_date_list[data])
                 new_temp.append(temp_list[data])
+            ##print("Duration: {} sec".format(tm.time() - ts))
             plt.plot_date(new_date,new_temp,'-o', ms=2)
             self.set_axis("Temperature", "Time", "Temperature (F)")
             self.x_axis_format()
             #self.current_pic = plt
+            #print("Duration: {} sec".format(tm.time() - ts))
+
             plt.savefig('app_data\\temp.png', dpi=self.sel_dpi)
             temp_map = QPixmap('app_data\\temp.png')
             #fin_temp_pixmap = temp_map.scaled(res_x, res_y)
             self.ui.pic_label.setPixmap(temp_map)
             self.no_data_disp(new_temp)
+            #print("Duration: {} sec".format(tm.time() - ts))
+
             #self.current_image = temp_map
-            #print("Duration: {} sec".format(time.time() - ts))
+            #print("Duration: {} sec".format(tm.time() - ts))
             #print(self.current_pic)
             
         if index == 1:
@@ -295,11 +301,26 @@ class mywindow(QtWidgets.QMainWindow):
             self.ui.pic_label.setPixmap(self.no_info)
     
     def date_list_creator(self,date_raw,date_list):
-        for day in date_raw[1:]:
+        ts = tm.time()
+        for day in date_raw[1::20]:
             time = datetime.datetime.strptime(day,'%Y-%m-%d %H:%M:%S')
+            #print("Duration: {} sec".format(tm.time() - ts))
+
             date_list.append(matplotlib.dates.date2num(time))
+            #print("Duration: {} sec".format(tm.time() - ts))
+
         return date_list
-                
+            #year=int(day[:4])#year
+            #month=int(day[5:7])#month
+            ##current_day=int(day[9:11])#day
+            #temp_hours = (day[11:]).split(":")
+            #print(temp_hours[0])
+            #date_format = ("{}-{}-{} {}:{}:{}").format(year,month,current_day,temp_hours[0],temp_hours[1],temp_hours[2])
+            #jerry = matplotlib.dates.datestr2num(time)
+            #print(time)
+            
+            #date_list.append(jerry)
+
     def print_cal(self):
         self.date_hold = self.ui.calendarWidget.selectedDate()
     
@@ -307,7 +328,7 @@ class mywindow(QtWidgets.QMainWindow):
         super(mywindow,self).__init__()
         self.time_bool = 0
         self.current_pic = 0
-        self.sel_dpi = 200
+        self.sel_dpi = 100
         #self.ui = uic.loadUi("app_data\\weather_ui_2.ui")
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
@@ -318,7 +339,7 @@ class mywindow(QtWidgets.QMainWindow):
         self.company_icon = QPixmap('app_data\\MAC-Round-Logo.png')
         self.ui.MAC_LOGO.setPixmap(self.company_icon)
         self.ui.pic_label.setPixmap(pixmap)
-        self.ui.sel_combo.activated.connect(self.change_param)#(self.activate)
+        self.ui.radioButton_7.toggled.connect(self.change_param)#(self.activate)
         self.ui.dev_combo.activated.connect(self.dev_select)
         self.ui.Save_Image.triggered.connect(self.save_button)
         self.ui.action200_dpi.triggered.connect(self.action200)
@@ -339,21 +360,6 @@ class mywindow(QtWidgets.QMainWindow):
         self.ui.date_end.setDate(QDate.currentDate())
         self.ui.current_dpi.setText("current res: {}".format(self.sel_dpi))
         self.device_selected = self.ui.dev_combo.currentText()
-        self.dev_listing = open("app_data\\unit.txt")
-        for x in self.dev_listing:
-            self.ui.dev_combo.addItem(x.split()[0])
-        #self.dev_listing = open("app_data\\unit.txt",'a')
-        #self.dev_listing.write("33\n")
-        #self.dev_listing.close()
-        self.ui.actionAdd_Device.triggered.connect(self.add_device)
-        
-    def add_device(self):
-        text, okPressed = QInputDialog.getText(self, "New device","Device number:", QLineEdit.Normal, "")
-        if okPressed and text != '':
-            self.dev_listing = open("app_data\\unit.txt",'a')
-            self.dev_listing.write("{}\n".format(text))
-            self.dev_listing.close()
-
     
     def change_param(self, index):
         self.index_stored = index
@@ -421,54 +427,55 @@ class mywindow(QtWidgets.QMainWindow):
 
         
     def refresh_data(self):
-        if self.change_bool == 1:
-            self.flag_data = 0
-            try:
-                self.sheet = client.open('Weather Station {}'.format(self.device_selected)).sheet1
-            except:
-                self.flag_data = 1
-                msgBox = QMessageBox()
-                msgBox.setIcon(QMessageBox.Warning)
-                msgBox.setText("Invalid device! Please select a different device")
-                msgBox.setWindowTitle("Caution")
-                msgBox.setStandardButtons(QMessageBox.Ok)
-                returnValue = msgBox.exec()
-            if self.flag_data == 0:
-                
-                self.date = self.sheet.col_values(1)
-                self.wind = self.sheet.col_values(2)
-                self.voltage = self.sheet.col_values(3)
-                self.temp = self.sheet.col_values(4)
-                self.soil_moisture = self.sheet.col_values(5)
-                self.humidity = self.sheet.col_values(6)
-                self.pressure = self.sheet.col_values(7)
-                self.soil_temp = self.sheet.col_values(8)
-                self.wind_dir = self.sheet.col_values(9)
-                self.activate(self.ui.sel_combo.currentIndex())
-                self.change_bool = 1
-                self.activate(self.index_stored)
-#            except:
-#                msgBox = QMessageBox()
-#                msgBox.setIcon(QMessageBox.Warning)
-#                msgBox.setText("Invalid device! Please select a different device")
-#                msgBox.setWindowTitle("Caution")
-#                msgBox.setStandardButtons(QMessageBox.Ok)
-#                returnValue = msgBox.exec()
-        else:
-            #self.activate(self.ui.sel_combo.currentIndex())
-            self.activate(self.index_stored)
-        
-    def download_data(self):
+        #ts = tm.time()
+        #if self.change_bool == 1:             
         self.sheet = client.open('Weather Station {}'.format(self.device_selected)).sheet1
+        #print("Duration: {} sec".format(tm.time() - ts))
+        temp_index = 0
+        print(self.ui.radioButton_8.isChecked())
         self.date = self.sheet.col_values(1)
-        self.wind = self.sheet.col_values(2)
-        self.voltage = self.sheet.col_values(3)
-        self.temp = self.sheet.col_values(4)
-        self.soil_moisture = self.sheet.col_values(5)
-        self.humidity = self.sheet.col_values(6)
-        self.pressure = self.sheet.col_values(7)
-        self.soil_temp = self.sheet.col_values(8)
-        self.wind_dir = self.sheet.col_values(9)
+        if (self.ui.radioButton_6.isChecked() == True):      
+            self.wind = self.sheet.col_values(2)
+            temp_index = 1
+        elif (self.ui.radioButton_8.isChecked() == True): 
+            self.voltage = self.sheet.col_values(3)
+            temp_index = 6
+        elif (self.ui.radioButton_7.isChecked() == True):    
+            self.temp = self.sheet.col_values(4)
+            temp_index = 0
+        elif (self.ui.radioButton_5.isChecked() == True): 
+            self.soil_moisture = self.sheet.col_values(5)
+            temp_index = 2
+        elif (self.ui.radioButton_3.isChecked() == True): 
+            self.humidity = self.sheet.col_values(6)
+            temp_index = 4
+        elif (self.ui.radioButton_2.isChecked() == True): 
+            self.pressure = self.sheet.col_values(7)
+            temp_index = 5
+        elif (self.ui.radioButton_4.isChecked() == True): 
+            self.soil_temp = self.sheet.col_values(8)
+            temp_index = 3
+        elif (self.ui.radioButton.isChecked() == True):     
+            self.wind_dir = self.sheet.col_values(9)
+            temp_index = 7
+        self.activate(temp_index)
+        #else:
+            #self.activate(self.ui.sel_combo.currentIndex())
+            #self.activate(self.index_stored)
+
+        
+    # def download_data(self):
+        
+    #     self.sheet = client.open('Weather Station {}'.format(self.device_selected)).sheet1
+    #     self.date = self.sheet.col_values(1)
+    #     self.wind = self.sheet.col_values(2)
+    #     self.voltage = self.sheet.col_values(3)
+    #     self.temp = self.sheet.col_values(4)
+    #     self.soil_moisture = self.sheet.col_values(5)
+    #     self.humidity = self.sheet.col_values(6)
+    #     self.pressure = self.sheet.col_values(7)
+    #     self.soil_temp = self.sheet.col_values(8)
+    #     self.wind_dir = self.sheet.col_values(9)
         
     def saveFileDialog(self):
         options = QFileDialog.Options()
@@ -486,4 +493,3 @@ app = QtWidgets.QApplication([])
 application = mywindow()
 application.show()
 sys.exit(app.exec())
-self.dev_listing.close()
