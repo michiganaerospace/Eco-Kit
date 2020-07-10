@@ -318,7 +318,7 @@ class mywindow(QtWidgets.QMainWindow):
         self.company_icon = QPixmap('MAC-Round-Logo.png')
         self.ui.MAC_LOGO.setPixmap(self.company_icon)
         self.ui.pic_label.setPixmap(pixmap)
-        self.ui.sel_combo.activated.connect(self.change_param)#(self.activate)
+        self.ui.radioButton_7.toggled.connect(self.change_param)#(self.activate)
         self.ui.dev_combo.activated.connect(self.dev_select)
         self.ui.Save_Image.triggered.connect(self.save_button)
         self.ui.action200_dpi.triggered.connect(self.action200)
@@ -345,7 +345,7 @@ class mywindow(QtWidgets.QMainWindow):
         #self.dev_listing = open("app_data\\unit.txt",'a')
         #self.dev_listing.write("33\n")
         #self.dev_listing.close()
-        self.ui.actionAdd_Device.triggered.connect(self.add_device)
+        #self.ui.actionAdd_Device.triggered.connect(self.add_device)
         
     def add_device(self):
         text, okPressed = QInputDialog.getText(self, "New device","Device number:", QLineEdit.Normal, "")
@@ -421,42 +421,36 @@ class mywindow(QtWidgets.QMainWindow):
 
         
     def refresh_data(self):
-        if self.change_bool == 1:
-            self.flag_data = 0
-            try:
-                self.sheet = client.open('Weather Station {}'.format(self.device_selected)).sheet1
-            except:
-                self.flag_data = 1
-                msgBox = QMessageBox()
-                msgBox.setIcon(QMessageBox.Warning)
-                msgBox.setText("Invalid device! Please select a different device")
-                msgBox.setWindowTitle("Caution")
-                msgBox.setStandardButtons(QMessageBox.Ok)
-                returnValue = msgBox.exec()
-            if self.flag_data == 0:
-                
-                self.date = self.sheet.col_values(1)
-                self.wind = self.sheet.col_values(2)
-                self.voltage = self.sheet.col_values(3)
-                self.temp = self.sheet.col_values(4)
-                self.soil_moisture = self.sheet.col_values(5)
-                self.humidity = self.sheet.col_values(6)
-                self.pressure = self.sheet.col_values(7)
-                self.soil_temp = self.sheet.col_values(8)
-                self.wind_dir = self.sheet.col_values(9)
-                self.activate(self.ui.sel_combo.currentIndex())
-                self.change_bool = 1
-                self.activate(self.index_stored)
-#            except:
-#                msgBox = QMessageBox()
-#                msgBox.setIcon(QMessageBox.Warning)
-#                msgBox.setText("Invalid device! Please select a different device")
-#                msgBox.setWindowTitle("Caution")
-#                msgBox.setStandardButtons(QMessageBox.Ok)
-#                returnValue = msgBox.exec()
-        else:
-            #self.activate(self.ui.sel_combo.currentIndex())
-            self.activate(self.index_stored)
+        self.sheet = client.open('Weather Station {}'.format(self.device_selected)).sheet1
+        #print("Duration: {} sec".format(tm.time() - ts))
+        temp_index = 0
+        print(self.ui.radioButton_8.isChecked())
+        self.date = self.sheet.col_values(1)
+        if (self.ui.radioButton_6.isChecked() == True):      
+            self.wind = self.sheet.col_values(2)
+            temp_index = 1
+        elif (self.ui.radioButton_8.isChecked() == True): 
+            self.voltage = self.sheet.col_values(3)
+            temp_index = 6
+        elif (self.ui.radioButton_7.isChecked() == True):    
+            self.temp = self.sheet.col_values(4)
+            temp_index = 0
+        elif (self.ui.radioButton_5.isChecked() == True): 
+            self.soil_moisture = self.sheet.col_values(5)
+            temp_index = 2
+        elif (self.ui.radioButton_3.isChecked() == True): 
+            self.humidity = self.sheet.col_values(6)
+            temp_index = 4
+        elif (self.ui.radioButton_2.isChecked() == True): 
+            self.pressure = self.sheet.col_values(7)
+            temp_index = 5
+        elif (self.ui.radioButton_4.isChecked() == True): 
+            self.soil_temp = self.sheet.col_values(8)
+            temp_index = 3
+        elif (self.ui.radioButton.isChecked() == True):     
+            self.wind_dir = self.sheet.col_values(9)
+            temp_index = 7
+        self.activate(temp_index)
         
     def download_data(self):
         self.sheet = client.open('Weather Station {}'.format(self.device_selected)).sheet1
